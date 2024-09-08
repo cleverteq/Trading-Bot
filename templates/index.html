@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>API Management</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .api-box {
+            display: inline-block;
+            text-align: center;
+            margin: 20px;
+            cursor: pointer;
+        }
+        .api-logo {
+            display: block;
+            margin: 0 auto 10px;
+            max-width: 100px;
+        }
+        .api-name {
+            font-size: 18px;
+            color: #333;
+            text-decoration: none;
+            display: block;
+            margin-top: 10px;
+        }
+        .api-button {
+            font-size: 16px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+        h2 {
+            color: #333;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>Select an API to Manage</h2>
+
+        <!-- Binance API -->
+        <div class="api-box">
+            <img src="/static/binance-logo.png" alt="Binance Logo" class="api-logo">
+            <span class="api-name">Binance</span>
+            <button class="api-button" onclick="window.location.href='/api/binance'">Manage Binance</button>
+        </div>
+
+        <!-- Zerodha API -->
+        <div class="api-box">
+            <img src="/static/zerodha-logo.png" alt="Zerodha Logo" class="api-logo">
+            <span class="api-name">Zerodha Kite</span>
+            <button class="api-button" onclick="window.location.href='/api/zerodha'">Manage Zerodha</button>
+        </div>
+
+        <!-- AngelOne API -->
+        <div class="api-box">
+            <img src="/static/angel-logo.png" alt="AngelOne Logo" class="api-logo">
+            <span class="api-name">AngelOne</span>
+            <button class="api-button" onclick="window.location.href='/api/angel'">Manage AngelOne</button>
+        </div>
+    </div>
+
+</body>
+</html>

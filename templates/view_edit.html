@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>View/Edit API Credentials</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            background-color: #f4f4f4;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+            background-color: white;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+            text-align: center;
+        }
+        .form-input {
+            width: 100%;
+            padding: 10px;
+            margin-bottom: 15px;
+            box-sizing: border-box;
+        }
+        .submit-button, .status-button, .back-button {
+            padding: 10px 15px;
+            font-size: 16px;
+            color: white;
+            background-color: #28a745;
+            border: none;
+            cursor: pointer;
+            width: 100%;
+            margin-bottom: 10px;
+        }
+        .status-button {
+            background-color: #007bff;
+        }
+        .back-button {
+            background-color: #6c757d;
+        }
+        .message {
+            margin-top: 20px;
+            font-size: 16px;
+            color: green;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h2>View/Edit {{ broker | capitalize }} API Credentials</h2>
+
+        {% if credentials %}
+        <form action="/submit-{{ broker }}" method="post">
+            <input type="text" class="form-input" name="{{ broker }}_api_key" value="{{ credentials[2] }}" placeholder="{{ broker | capitalize }} API Key" required>
+            {% if broker == 'binance' %}
+            <input type="text" class="form-input" name="{{ broker }}_api_secret" value="{{ credentials[3] }}" placeholder="{{ broker | capitalize }} API Secret" required>
+            {% endif %}
+            {% if broker == 'zerodha' %}
+            <input type="text" class="form-input" name="kite_access_token" value="{{ credentials[4] }}" placeholder="Zerodha Access Token" required>
+            {% endif %}
+            {% if broker == 'angel' %}
+            <input type="text" class="form-input" name="angel_username" value="{{ credentials[5] }}" placeholder="AngelOne Username" required>
+            <input type="password" class="form-input" name="angel_password" value="{{ credentials[6] }}" placeholder="AngelOne Password" required>
+            <input type="text" class="form-input" name="angel_totp" value="{{ credentials[7] }}" placeholder="AngelOne TOTP (QR Value)" required>
+            {% endif %}
+            <button type="submit" class="submit-button">Update {{ broker | capitalize }} Credentials</button>
+        </form>
+
+        <!-- Add the Check Connection Button -->
+        <form action="/check-{{ broker }}" method="post">
+            <button type="submit" class="status-button">Check {{ broker | capitalize }} Connection</button>
+        </form>
+
+        {% else %}
+        <p>No credentials found for {{ broker | capitalize }}.</p>
+        {% endif %}
+
+        <!-- Show the connection status message if available -->
+        {% if message %}
+        <div class="message">{{ message }}</div>
+        {% endif %}
+
+        <!-- Back button to go back -->
+        <button class="back-button" onclick="window.history.back()">Go Back</button>
+    </div>
+
+</body>
+</html>
