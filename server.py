@@ -6,6 +6,7 @@ from binance.client import Client
 from kiteconnect import KiteConnect
 from SmartApi import SmartConnect
 
+import json
 import sqlite3
 
 app = FastAPI()
@@ -299,3 +300,143 @@ async def startup_event():
 async def get_form(request: Request):
     """Render the index.html page"""
     return templates.TemplateResponse("index.html", {"request": request})
+
+# Initialize the Binance Client (you should replace with your API key and secret)
+binance_client = Client("your_api_key", "your_api_secret")
+
+# Function to calculate Take Profit (TP) and Stop Loss (SL)
+def calculate_tp_sl(entry_price, tp_percent, sl_percent, trade_type):
+    if trade_type == "BUY":
+        tp_price = entry_price * (1 + tp_percent / 100)
+        sl_price = entry_price * (1 - sl_percent / 100)
+    else:
+        tp_price = entry_price * (1 - tp_percent / 100)
+        sl_price = entry_price * (1 + sl_percent / 100)
+    return tp_price, sl_price
+
+# Function to close an open position
+def close_trade(symbol):
+    try:
+        position_info = binance_client.futures_position_information(symbol=symbol)
+        for position in position_info:
+            if float(position['positionAmt']) != 0:  # If there's an open position
+                if float(position['positionAmt']) > 0:
+                    # If it's a long position, we need to sell to close it
+                    binance_client.futures_create_order(symbol=symbol, side="SELL", type="MARKET", quantity=abs(float(position['positionAmt'])))
+                else:
+                    # If it's a short position, we need to buy to close it
+                    binance_client.futures_create_order(symbol=symbol, side="BUY", type="MARKET", quantity=abs(float(position['positionAmt'])))
+        return True
+    except Exception as e:
+        return False, str(e)
+
+# Function to cancel open orders
+def cancel_orders(symbol):
+    try:
+        binance_client.futures_cancel_all_open_orders(symbol=symbol)
+        return True
+    except Exception as e:
+        return False, str(e)
+
+# Function to place a new trade with TP and SL
+def place_trade(symbol, quantity, trade_type, tp_percent, sl_percent):
+    try:
+        # Fetch current market price
+        ticker = binance_client.futures_symbol_ticker(symbol=symbol)
+        entry_price = float(ticker['price'])
+
+        # Calculate TP and SL
+        tp_price, sl_price = calculate_tp_sl(entry_price, tp_percent, sl_percent, trade_type)
+
+        # Place the order
+        binance_client.futures_create_order(
+            symbol=symbol,
+            side=trade_type,
+            type="MARKET",
+            quantity=quantity
+        )
+
+        # Place TP and SL orders
+        if trade_type == "BUY":
+            # Sell Limit for TP, Sell Stop Market for SL
+            binance_client.futures_create_order(
+                symbol=symbol,
+                side="SELL",
+                type="LIMIT",
+                price=tp_price,
+                quantity=quantity,
+                timeInForce="GTC"
+            )
+            binance_client.futures_create_order(
+                symbol=symbol,
+                side="SELL",
+                type="STOP_MARKET",
+                stopPrice=sl_price,
+                quantity=quantity
+            )
+        else:
+            # Buy Limit for TP, Buy Stop Market for SL
+            binance_client.futures_create_order(
+                symbol=symbol,
+                side="BUY",
+                type="LIMIT",
+                price=tp_price,
+                quantity=quantity,
+                timeInForce="GTC"
+            )
+            binance_client.futures_create_order(
+                symbol=symbol,
+                side="BUY",
+                type="STOP_MARKET",
+                stopPrice=sl_price,
+                quantity=quantity
+            )
+        return True
+    except Exception as e:
+        return False, str(e)
+
+# Main endpoint to handle TradingView signals
+@app.post("/webhook")
+async def receive_signal(request: Request):
+    try:
+        data = await request.json()
+        for signal in data:
+            symbol = signal.get("TS", "BTCUSDT")
+            action_type = signal.get("CLOSE") or signal.get("CANCEL") or signal.get("TT")
+
+            if action_type == "CLOSE":
+                success, message = close_trade(symbol)
+                if success:
+                    print(f"Closed position for {symbol}")
+                else:
+                    print(f"Failed to close position: {message}")
+            elif action_type == "CANCEL":
+                success, message = cancel_orders(symbol)
+                if success:
+                    print(f"Cancelled all orders for {symbol}")
+                else:
+                    print(f"Failed to cancel orders: {message}")
+            elif action_type in ["BUY", "SELL"]:
+                quantity_percent = signal.get("Q", "25%")  # Default is 25%
+                tp_percent = float(signal.get("TP", "5%").replace("%", ""))  # Take Profit in percentage
+                sl_percent = float(signal.get("SL", "2%").replace("%", ""))  # Stop Loss in percentage
+
+                # Assuming your account has $1000 as equity, calculate the quantity based on percentage
+                account_info = binance_client.futures_account()
+                balance = float(account_info['totalWalletBalance'])
+                trade_value = (balance * float(quantity_percent.replace("%", ""))) / 100
+
+                # Assuming BTCUSDT price is $50,000 for now, calculate how many units to trade
+                ticker = binance_client.futures_symbol_ticker(symbol=symbol)
+                entry_price = float(ticker['price'])
+                quantity = round(trade_value / entry_price, 3)
+
+                success, message = place_trade(symbol, quantity, action_type, tp_percent, sl_percent)
+                if success:
+                    print(f"Placed {action_type} order for {symbol} with TP: {tp_percent}%, SL: {sl_percent}%")
+                else:
+                    print(f"Failed to place {action_type} order: {message}")
+
+        return {"status": "success", "message": "Trading signals processed."}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
