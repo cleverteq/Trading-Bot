@@ -8,3 +8,4 @@ logzero
 pyotp
 websocket-client
 jinja2
+SmartApi
