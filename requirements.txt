@@ -2,7 +2,6 @@ fastapi
 uvicorn
 python-binance
 kiteconnect
-angelbroking-smartapi
 python-dotenv
 logzero
 pyotp
