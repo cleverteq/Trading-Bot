@@ -440,3 +440,4 @@ async def receive_signal(request: Request):
         return {"status": "success", "message": "Trading signals processed."}
     except Exception as e:
         return {"status": "error", "message": str(e)}
+    
